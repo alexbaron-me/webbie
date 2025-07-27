@@ -1,0 +1,17 @@
+[package]
+name = "webbie"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "webbie"
+path = "src/lib.rs"
+
+[[bin]]
+name = "webbie"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1.47.0", features = ["full"] }
+warp = "0.3.7"
