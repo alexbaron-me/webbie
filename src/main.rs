@@ -19,7 +19,7 @@ impl RequestLogger for ConsoleLogger {
             .map(|(k, v)| {
                 format!(
                     "{}: {}",
-                    k.as_str().to_lowercase().bold(),
+                    k.as_str().to_lowercase().yellow().bold(),
                     v.to_str().unwrap_or("Invalid UTF-8")
                 )
             })
