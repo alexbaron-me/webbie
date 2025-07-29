@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 use webbie::{start_server, Request, RequestLogger};
 
 #[derive(Parser, Debug)]
@@ -18,7 +19,7 @@ impl RequestLogger for ConsoleLogger {
             .map(|(k, v)| {
                 format!(
                     "{}: {}",
-                    k.as_str().to_lowercase(),
+                    k.as_str().to_lowercase().bold(),
                     v.to_str().unwrap_or("Invalid UTF-8")
                 )
             })
@@ -29,8 +30,8 @@ impl RequestLogger for ConsoleLogger {
 
         println!(
             "{} {}\n{}\n{}\n",
-            req.method(),
-            req.path().as_str(),
+            req.method().as_str().green().bold(),
+            req.path().as_str().blue().bold(),
             headers,
             body_str
         );
