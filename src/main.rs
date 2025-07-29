@@ -28,10 +28,17 @@ impl RequestLogger for ConsoleLogger {
 
         let body_str = String::from_utf8_lossy(req.body().as_ref());
 
+        let query = if req.query().is_empty() {
+            String::new()
+        } else {
+            format!("?{}", req.query().yellow().italic())
+        };
+
         println!(
-            "{} {}\n{}\n{}\n",
+            "{} {}{}\n{}\n{}\n",
             req.method().as_str().green().bold(),
             req.path().as_str().blue().bold(),
+            query,
             headers,
             body_str
         );
