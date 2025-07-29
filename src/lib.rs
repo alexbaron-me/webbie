@@ -1,9 +1,12 @@
 use bytes::Bytes;
+use getset::Getters;
 use std::sync::Arc;
 use warp::filters::path::FullPath;
 use warp::http::{HeaderMap, Method};
 use warp::Filter;
 
+#[derive(Debug, Getters)]
+#[getset(get = "pub")]
 pub struct Request {
     method: Method,
     path: FullPath,

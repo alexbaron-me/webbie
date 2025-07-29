@@ -12,7 +12,28 @@ struct Args {
 struct ConsoleLogger;
 impl RequestLogger for ConsoleLogger {
     fn log_request(&self, req: &Request) {
-        println!("Got a request");
+        let headers = req
+            .headers()
+            .iter()
+            .map(|(k, v)| {
+                format!(
+                    "{}: {}",
+                    k.as_str().to_lowercase(),
+                    v.to_str().unwrap_or("Invalid UTF-8")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let body_str = String::from_utf8_lossy(req.body().as_ref());
+
+        println!(
+            "{} {}\n{}\n{}\n",
+            req.method(),
+            req.path().as_str(),
+            headers,
+            body_str
+        );
     }
 }
 
