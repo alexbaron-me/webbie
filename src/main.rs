@@ -22,28 +22,31 @@ lazy_static! {
     static ref THEME_SET: ThemeSet = ThemeSet::load_defaults();
 }
 
+fn apply_highlighting(filetype: &str, content: &str) -> String {
+    let syntax = SYNTAX_SET
+        .find_syntax_by_extension(filetype)
+        .unwrap_or_else(|| SYNTAX_SET.find_syntax_plain_text());
+
+    // TODO: Better theme selection
+    let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
+
+    // TODO: Less allocation-heavy way to handle this
+    let mut highlighted_content = String::new();
+    for line in LinesWithEndings::from(content) {
+        let ranges: Vec<(Style, &str)> = h.highlight_line(line, &SYNTAX_SET).unwrap();
+        highlighted_content.push_str(&as_24_bit_terminal_escaped(&ranges[..], true));
+        highlighted_content.push('\n');
+    }
+
+    highlighted_content
+}
+
 fn format_body(mime_type: &str, body: &[u8]) -> String {
     let normalized_mime_type = mime_type.split(';').next().unwrap_or("").to_lowercase();
 
     match normalized_mime_type.trim() {
-        "application/json" => {
-            let syntax = SYNTAX_SET.find_syntax_by_extension("json").unwrap();
-            // TODO: Better theme selection
-            let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
-
-            // TODO: Use a string builder or something
-            let raw = String::from_utf8_lossy(body);
-
-            // TODO: No need to allocate a new vector here, can use a stream instead
-            let mut lines = vec![];
-            for line in LinesWithEndings::from(raw.as_ref()) {
-                let ranges: Vec<(Style, &str)> = h.highlight_line(line, &SYNTAX_SET).unwrap();
-                let escaped = as_24_bit_terminal_escaped(&ranges[..], true);
-                lines.push(escaped);
-            }
-
-            lines.join("\n")
-        }
+        "application/json" => apply_highlighting("json", &String::from_utf8_lossy(body)),
+        "application/xml" | "text/xml" => apply_highlighting("xml", &String::from_utf8_lossy(body)),
         "application/x-www-form-urlencoded" => {
             // For URL-encoded forms, decode and format the body
             let decoded = String::from_utf8_lossy(body);
