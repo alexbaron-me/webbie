@@ -16,6 +16,36 @@ struct Args {
     port: u16,
 }
 
+fn format_body(mime_type: &str, body: &[u8]) -> String {
+    match mime_type.to_lowercase().trim() {
+        "application/json" => {
+            // TODO: Move this away from the hot path
+            let ss = SyntaxSet::load_defaults_newlines();
+            let ts = ThemeSet::load_defaults();
+            let syntax = ss.find_syntax_by_extension("json").unwrap();
+            // TODO: Better theme selection
+            let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+
+            // TODO: Use a string builder or something
+            let raw = String::from_utf8_lossy(body);
+
+            // TODO: No need to allocate a new vector here, can use a stream instead
+            let mut lines = vec![];
+            for line in LinesWithEndings::from(raw.as_ref()) {
+                let ranges: Vec<(Style, &str)> = h.highlight_line(line, &ss).unwrap();
+                let escaped = as_24_bit_terminal_escaped(&ranges[..], true);
+                lines.push(escaped);
+            }
+
+            lines.join("\n")
+        }
+        _ => {
+            // For other MIME types, just return the body as a string
+            String::from_utf8_lossy(body).to_string()
+        }
+    }
+}
+
 struct ConsoleLogger;
 impl RequestLogger for ConsoleLogger {
     fn log_request(&self, req: &Request) {
@@ -33,26 +63,14 @@ impl RequestLogger for ConsoleLogger {
             .join("\n");
 
         let body_str = if req.body().len() > 0 {
-            // TODO: Move this away from the hot path
-            let ss = SyntaxSet::load_defaults_newlines();
-            let ts = ThemeSet::load_defaults();
+            let mime_type = req
+                .headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("text/plain");
 
-            // TODO: Handle different content types, depending on MIME type
-            let syntax = ss.find_syntax_by_extension("json").unwrap();
-            // TODO: Better theme selection
-            let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
-
-            let raw = String::from_utf8_lossy(req.body().as_ref());
-
-            // TODO: No need to allocate a new vector here, can use a stream instead
-            let mut lines = vec![];
-            for line in LinesWithEndings::from(raw.as_ref()) {
-                let ranges: Vec<(Style, &str)> = h.highlight_line(line, &ss).unwrap();
-                let escaped = as_24_bit_terminal_escaped(&ranges[..], true);
-                lines.push(escaped);
-            }
-
-            lines.join("\n")
+            let formatted_body = format_body(mime_type, req.body());
+            formatted_body
         } else {
             "".into()
         };
