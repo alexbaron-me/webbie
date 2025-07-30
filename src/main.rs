@@ -30,15 +30,12 @@ fn apply_highlighting(filetype: &str, content: &str) -> String {
     // TODO: Better theme selection
     let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
 
-    // TODO: Less allocation-heavy way to handle this
-    let mut highlighted_content = String::new();
-    for line in LinesWithEndings::from(content) {
-        let ranges: Vec<(Style, &str)> = h.highlight_line(line, &SYNTAX_SET).unwrap();
-        highlighted_content.push_str(&as_24_bit_terminal_escaped(&ranges[..], true));
-        highlighted_content.push('\n');
-    }
-
-    highlighted_content
+    LinesWithEndings::from(content)
+        .map(|line| {
+            let ranges: Vec<(Style, &str)> = h.highlight_line(line, &SYNTAX_SET).unwrap();
+            as_24_bit_terminal_escaped(&ranges[..], true)
+        })
+        .collect()
 }
 
 fn format_body(mime_type: &str, body: &[u8]) -> String {
