@@ -1,5 +1,6 @@
 use clap::Parser;
 use colored::Colorize;
+use lazy_static::lazy_static;
 use syntect::{
     easy::HighlightLines,
     highlighting::{Style, ThemeSet},
@@ -16,17 +17,19 @@ struct Args {
     port: u16,
 }
 
+lazy_static! {
+    static ref SYNTAX_SET: SyntaxSet = SyntaxSet::load_defaults_newlines();
+    static ref THEME_SET: ThemeSet = ThemeSet::load_defaults();
+}
+
 fn format_body(mime_type: &str, body: &[u8]) -> String {
     let normalized_mime_type = mime_type.split(';').next().unwrap_or("").to_lowercase();
 
     match normalized_mime_type.trim() {
         "application/json" => {
-            // TODO: Move this away from the hot path
-            let ss = SyntaxSet::load_defaults_newlines();
-            let ts = ThemeSet::load_defaults();
-            let syntax = ss.find_syntax_by_extension("json").unwrap();
+            let syntax = SYNTAX_SET.find_syntax_by_extension("json").unwrap();
             // TODO: Better theme selection
-            let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+            let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
 
             // TODO: Use a string builder or something
             let raw = String::from_utf8_lossy(body);
@@ -34,7 +37,7 @@ fn format_body(mime_type: &str, body: &[u8]) -> String {
             // TODO: No need to allocate a new vector here, can use a stream instead
             let mut lines = vec![];
             for line in LinesWithEndings::from(raw.as_ref()) {
-                let ranges: Vec<(Style, &str)> = h.highlight_line(line, &ss).unwrap();
+                let ranges: Vec<(Style, &str)> = h.highlight_line(line, &SYNTAX_SET).unwrap();
                 let escaped = as_24_bit_terminal_escaped(&ranges[..], true);
                 lines.push(escaped);
             }
