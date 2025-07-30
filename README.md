@@ -8,7 +8,6 @@ A lightweight HTTP server for testing webhooks and inspecting HTTP requests with
 - 🎨 Syntax highlighting for JSON, XML, and URL-encoded request bodies
 - 📝 Detailed request logging with colored output
 - 🔍 Displays HTTP method, path, query parameters, headers, and body
-- ⚡ Built with Rust for blazing-fast performance
 
 ## Installation
 
