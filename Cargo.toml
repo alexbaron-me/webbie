@@ -1,5 +1,9 @@
 [package]
 name = "webbie"
+description = "A tiny local HTTP server to test web hooks or other incoming HTTP requests"
+repository = "https://github.com/alexbaron-me/webbie"
+license = "MIT"
+authors = ["Alexander Baron <hey@alexbaron.me>"]
 version = "0.1.0"
 edition = "2021"
 
