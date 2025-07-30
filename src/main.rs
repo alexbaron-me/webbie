@@ -17,7 +17,9 @@ struct Args {
 }
 
 fn format_body(mime_type: &str, body: &[u8]) -> String {
-    match mime_type.to_lowercase().trim() {
+    let normalized_mime_type = mime_type.split(';').next().unwrap_or("").to_lowercase();
+
+    match normalized_mime_type.trim() {
         "application/json" => {
             // TODO: Move this away from the hot path
             let ss = SyntaxSet::load_defaults_newlines();
@@ -38,6 +40,21 @@ fn format_body(mime_type: &str, body: &[u8]) -> String {
             }
 
             lines.join("\n")
+        }
+        "application/x-www-form-urlencoded" => {
+            // For URL-encoded forms, decode and format the body
+            let decoded = String::from_utf8_lossy(body);
+
+            decoded
+                .split('&')
+                .map(|pair| {
+                    let mut parts = pair.splitn(2, '=');
+                    let key = parts.next().unwrap_or("").to_string();
+                    let value = parts.next().unwrap_or("").to_string();
+                    format!("{}={}", key.bold().blue(), value)
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
         }
         _ => {
             // For other MIME types, just return the body as a string
@@ -70,7 +87,12 @@ impl RequestLogger for ConsoleLogger {
                 .unwrap_or("text/plain");
 
             let formatted_body = format_body(mime_type, req.body());
-            formatted_body
+
+            format!(
+                "{}\n{}",
+                "------ Body: ------".bold().italic().dimmed(),
+                formatted_body
+            )
         } else {
             "".into()
         };
