@@ -13,8 +13,8 @@ use webbie::{start_server, Request, RequestLogger};
 #[command(name = "webbie")]
 #[command(about = "A simple HTTP server that logs requests", long_about = None)]
 struct Args {
-    #[arg(short, long, help = "Port to listen on")]
-    port: u16,
+    #[arg(short = 'p', long = "port", help = "Port(s) to listen on")]
+    port: Vec<u16>,
 }
 
 lazy_static! {

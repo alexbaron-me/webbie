@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use futures::future;
 use getset::Getters;
 use std::sync::Arc;
 use warp::filters::path::FullPath;
@@ -19,11 +20,11 @@ pub trait RequestLogger {
     fn log_request(&self, req: &Request);
 }
 
-pub async fn start_server<T: RequestLogger + Sync + Send + 'static>(port: u16, logger: T) {
-    let logger_arc = Arc::new(logger);
-
-    let handler = warp::any()
-        .map(move || logger_arc.clone())
+fn make_handler<T: RequestLogger + Sync + Send + 'static>(
+    logger: Arc<T>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::any()
+        .map(move || logger.clone())
         .and(warp::method())
         .and(warp::path::full())
         .and(
@@ -52,7 +53,19 @@ pub async fn start_server<T: RequestLogger + Sync + Send + 'static>(port: u16, l
 
                 Ok::<_, warp::Rejection>(warp::reply())
             },
-        );
+        )
+}
 
-    warp::serve(handler).run(([0, 0, 0, 0], port)).await;
+pub async fn start_server<T: RequestLogger + Sync + Send + 'static>(ports: Vec<u16>, logger: T) {
+    let logger_arc = Arc::new(logger);
+
+    let servers = ports.iter().map(|&port| {
+        let handler = make_handler(logger_arc.clone());
+        warp::serve(handler).bind(([0, 0, 0, 0], port))
+    });
+    let joined_future = future::join_all(servers);
+
+    println!("Server started on ports: {:?}", ports);
+
+    joined_future.await;
 }
